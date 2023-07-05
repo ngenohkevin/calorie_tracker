@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/gin-gonic/gin"
+	"github.com/go-playground/validator/v10"
 	"github.com/ngenohkevin/calorie_tracker/models"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -11,6 +12,8 @@ import (
 	"net/http"
 	"time"
 )
+
+var validate = validator.New()
 
 var entryCollection *mongo.Collection = OpenCollection(Client, "calories")
 
