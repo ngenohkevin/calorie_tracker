@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/gin-gonic/gin"
+	"github.com/ngenohkevin/calorie_tracker/models"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -11,10 +12,33 @@ import (
 	"time"
 )
 
-var entryCollection *mongo.Collection = openCollection(Client, "calories")
+var entryCollection *mongo.Collection = OpenCollection(Client, "calories")
 
 func AddEntry(c *gin.Context) {
+	var ctx, cancel = context.WithTimeout(context.Background(), 100*time.Second)
 
+	var entry models.Entry
+
+	if err := c.BindJSON(&entry); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		fmt.Println(err)
+	}
+	validationErr := validate.Struct(entry)
+	if validationErr != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": validationErr.Error()})
+		fmt.Println(validationErr)
+
+	}
+	entry.ID = primitive.NewObjectID()
+	result, insertErr := entryCollection.InsertOne(ctx, entry)
+
+	if insertErr != nil {
+		msg := fmt.Sprintf("Order item was not created")
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		fmt.Println(insertErr)
+	}
+	defer cancel()
+	c.JSON(http.StatusOK, result)
 }
 
 func GetEntries(c *gin.Context) {
@@ -38,7 +62,18 @@ func GetEntries(c *gin.Context) {
 }
 
 func GetEntryById(c *gin.Context) {
+	EntryID := c.Params.ByName("id")
+	docID, _ := primitive.ObjectIDFromHex(EntryID)
 
+	var ctx, cancel = context.WithTimeout(context.Background(), 100*time.Second)
+	var entry bson.M
+	if err := entryCollection.FindOne(ctx, bson.M{"_id": docID}).Decode(&entry); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		fmt.Println(err)
+	}
+	defer cancel()
+	fmt.Println(entry)
+	c.JSON(http.StatusOK, entry)
 }
 
 func GetEntriesByIngredient(c *gin.Context) {
