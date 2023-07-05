@@ -7,25 +7,24 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-var Client *mongo.Client
-
-func DBInstance() error {
+func DBInstance() (*mongo.Client, error) {
 	MongoDb := "mongodb://localhost:27017/caloriesDb"
 
 	client, err := mongo.Connect(context.TODO(), options.Client().ApplyURI(MongoDb))
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	err = client.Ping(context.TODO(), nil)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	Client = client
 	fmt.Println("Connected to MongoDB")
-	return nil
+	return client, nil
 }
+
+var Client *mongo.Client = DBInstance()
 
 func OpenCollection(client *mongo.Client, collectionName string) *mongo.Collection {
 	collection := client.Database("caloriesDb").Collection(collectionName)
